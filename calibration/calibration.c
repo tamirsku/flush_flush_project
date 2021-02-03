@@ -5,12 +5,13 @@
 #include "../cacheutils.h"
 
 size_t array[5*1024];
-
 size_t hit_histogram[80];
 size_t miss_histogram[80];
 
+// Creates 80 "Buckets" that represents time it took to flush the memory. The Content is the time it took to evacuate the data.
+
 size_t cachehit(void* addr)
-{
+{ // Simulate Cache hit by preforming memory access, flushing the cache memory of the address and mesure time.
   maccess(addr);
   size_t time = rdtsc();
   flush(addr);
@@ -19,7 +20,8 @@ size_t cachehit(void* addr)
 }
 
 size_t cachemiss(void* addr)
-{
+{ // Simulate Cache miss by preforming memory access, flushing the cache memory of the address and mesure time.
+  flush(addr);
   size_t time = rdtsc();
   flush(addr);
   size_t delta = rdtsc() - time;
@@ -29,48 +31,26 @@ size_t cachemiss(void* addr)
 int main(int argc, char** argv)
 {
   memset(array,-1,5*1024*sizeof(size_t));
-  maccess(array + 2*1024);
   sched_yield();
+  // Create Histogram For Cache Hits (Long Flush time)
   for (int i = 0; i < 4*1024*1024; ++i)
   {
     size_t d = cachehit(array+2*1024);
     hit_histogram[MIN(79,d/5)]++;
-    sched_yield();
+    sched_yield(); 
   }
-  flush(array+2*1024);
+
+  // Create Histogram For Cache Misses (Short Flush time)
   for (int i = 0; i < 4*1024*1024; ++i)
   {
     size_t d = cachemiss(array+2*1024);
     miss_histogram[MIN(79,d/5)]++;
-    sched_yield();
+    sched_yield(); 
   }
+
   printf(".\n");
-  size_t hit_max = 0;
-  size_t hit_max_i = 0;
-  size_t miss_min_i = 0;
   for (int i = 0; i < 80; ++i)
   {
     printf("%3d: %10zu %10zu\n",i*5,hit_histogram[i],miss_histogram[i]);
-    if (hit_max < hit_histogram[i])
-    {
-      hit_max = hit_histogram[i];
-      hit_max_i = i;
-    }
-    if (miss_histogram[i] > 3 && miss_min_i == 0)
-      miss_min_i = i;
   }
-
-  size_t min = -1UL;
-  size_t min_i = 0;
-  for (int i = hit_max_i; i < miss_min_i; ++i)
-  {
-    if (min > (hit_histogram[i] + miss_histogram[i]))
-    {
-      min = hit_histogram[i] + miss_histogram[i];
-      min_i = i;
-    }
-  }
-  printf("The lower the threshold, the lower the number of false positives.\n");
-  printf("Suggested cache hit/miss threshold: %zu\n",min_i * 5);
-  return min_i * 5;
 }

