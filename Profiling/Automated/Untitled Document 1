@@ -1,0 +1,15 @@
+tamir@Tamir:~/Flush_Flush_Project/Profiling/Automated$ ps -A | grep gedit
+ 3766 pts/0    00:00:00 gedit
+tamir@Tamir:~/Flush_Flush_Project/Profiling/Automated$ cat /proc/3766/maps | grep r-x | grep gdk-3
+7f12d2a97000-7f12d2b82000 r-xp 00000000 103:07 1186641                   /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30
+tamir@Tamir:~/Flush_Flush_Project/Profiling/Automated$ echo "switch to gedit window"; sleep 5; ./spy 20 7f12d2a97000-7f12d2b82000 r-xp 00000000 103:07 1186641                   /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30
+
+
+
+
+tamir@Tamir:~/Flush_Flush_Project/Exploitation/Spy$ ps -A | grep gedit
+ 3766 pts/0    00:00:02 gedit
+tamir@Tamir:~/Flush_Flush_Project/Exploitation/Spy$ cat /proc/3766/maps | grep r-x | grep gdk-3
+7f12d2a97000-7f12d2b82000 r-xp 00000000 103:07 1186641                   /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30
+tamir@Tamir:~/Flush_Flush_Project/Exploitation/Spy$ ./spy /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30
+
