@@ -8,6 +8,7 @@ if [[ "$filesize" -gt "0" ]]; then
   echo "file size is $filesize bytes"
 else
   echo "file does not exist..."
+  exit 1
 fi
 i=$1
 while [[ $i -gt 0 ]]; do
@@ -16,5 +17,5 @@ while [[ $i -gt 0 ]]; do
   i=$((i - 1))
 done
 filesize=$(printf "%x" "$filesize")
-./spy 20 7f096f594000-7f096f67f000 r-xp 00000000 103:07 1186641                   /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30 | ../../exploitation/multi_spy/spy $3
+./spy $2             0-$filesize  --     0        -- -- $3 | ../../exploitation/multi_spy/spy $3
 

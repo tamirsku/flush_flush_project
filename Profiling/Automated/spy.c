@@ -150,7 +150,7 @@ int main(int argc, char** argv)
   }
   
 
-  bool should_print_Addr(size_t i){
+  int should_print_Addr(size_t i){
      int count = 0;
      float lp = 50.0; //Starting Upper bound
      for (float p = 1.0; p > 0.7; p -= 0.1)
