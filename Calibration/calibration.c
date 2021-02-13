@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     sched_yield(); 
   }
 
-  printf("Offset\tMiss\tHit\n");
+  printf("Time\tHits\tMisses\n");
   for (int i = 0; i < 80; ++i)
   {
     printf("%3d: %10zu %10zu\n",i*5,hit_histogram[i],miss_histogram[i]);

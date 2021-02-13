@@ -28,7 +28,7 @@ size_t flushandflush(void* addr, size_t duration)
     time = rdtsc();
     flush(addr);
     delta = rdtsc() - time;
-    if (delta > MIN_HIT_CYCLES)
+    if (delta > MIN_HIT)
     {
       count++;
     }
