@@ -11,8 +11,11 @@
 #include <stdint.h>
 #include "../../cacheutils.h"
 
+// Notice that file is only here as a template. The attack was meant to be used fully automated, 
+// but, it is possible to generate keypresses yourself and process the results using this template.
+
 // Adjust this number for your machine. it is the threshold between hit and miss.
-#define MIN_HIT_CYCLES (105)
+#define MIN_HIT (105)
 
 size_t flushandflush(void* addr, size_t duration)
 {
@@ -78,13 +81,12 @@ int main(int argc, char** argv)
   printf("file,addr,hits\n");
   size_t promille = 0;
   
-  //Go over all the memory range and check for hits/misses
+  // Profiling loop, mesure time while simulating keypresses  
  	for (size_t i = 0; i < range; i += 64)
   {
     printf("%s,%8p,",filename,(void*)offset + i);
-    for (size_t k = 0; k < 5; ++k)
-      sched_yield();
-    flush(start + i);
+
+    //Prioritize other processes on OS
     for (size_t k = 0; k < 5; ++k)
       sched_yield();
     count = flushandflush(start + i, duration);

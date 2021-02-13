@@ -10,9 +10,10 @@
 #include <sys/mman.h>
 #include <stdint.h>
 #include "../../cacheutils.h"
+// Automated verison of the Flush&Flush cache attack profiling stage.
 
 // Adjust this number for your machine. it is the threshold between hit and miss.
-#define MIN_HIT_CYCLES (105)
+#define MIN_HIT (105)
 
 // Init xdo - a library that simulates keypresses
 xdo_t* xdo;
@@ -20,7 +21,7 @@ size_t nkeys = 0;
 char key[2] = {'0', 0};
 Window win;
 
-// Execute Flush&Flush and count number of cache hits during the profiling stage.
+// Execute Flush&Flush and count the number of cache hits during the profiling stage.
 size_t flushandflush(void* addr, size_t duration)
 {
   size_t count = 0;
@@ -133,6 +134,8 @@ int main(int argc, char** argv)
     for (j = 0; j < chars_len; ++j)
     {
       key[0] = chars[j];
+
+      //Prioritize other processes on OS
       for (size_t k = 0; k < 5; ++k)
         sched_yield();
       nkeys = 0;

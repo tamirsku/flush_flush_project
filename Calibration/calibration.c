@@ -8,10 +8,10 @@ size_t array[5*1024];
 size_t hit_histogram[80];
 size_t miss_histogram[80];
 
-// Creates 80 "Buckets" that represents time it took to flush the memory. The Content is the time it took to evacuate the data.
+// Creates 80 "Buckets" that represents time it took to flush the memory. The Content is the time it took to flush the data.
 
 size_t cachehit(void* addr)
-{ // Simulate Cache hit by preforming memory access, flushing the cache memory of the address and mesure time.
+{ // Simulate Cache hit by preforming memory access, flushing the cache memory of the address and measure time.
   maccess(addr);
   size_t time = rdtsc();
   flush(addr);
@@ -20,7 +20,7 @@ size_t cachehit(void* addr)
 }
 
 size_t cachemiss(void* addr)
-{ // Simulate Cache miss by preforming memory access, flushing the cache memory of the address and mesure time.
+{ // Simulate Cache miss by preforming memory access, flushing the cache memory of the address and measure time.
   flush(addr);
   size_t time = rdtsc();
   flush(addr);
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     sched_yield(); 
   }
 
-  printf(".\n");
+  printf("Offset\tMiss\tHit\n");
   for (int i = 0; i < 80; ++i)
   {
     printf("%3d: %10zu %10zu\n",i*5,hit_histogram[i],miss_histogram[i]);
